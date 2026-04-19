@@ -13,6 +13,7 @@ export interface Expense {
   category: Category;
   description: string;
   createdAt: string; // ISO timestamp
+  tags?: string[]; // user-defined custom labels
 }
 
 export interface ExpenseFormData {
@@ -20,6 +21,7 @@ export interface ExpenseFormData {
   amount: string;
   category: Category;
   description: string;
+  tags: string[];
 }
 
 export interface FilterState {

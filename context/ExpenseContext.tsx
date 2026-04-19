@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Expense } from '@/types/expense';
+import { useAuth } from './AuthContext';
 import {
-  loadExpenses,
-  addExpense,
-  updateExpense,
-  deleteExpense,
-} from '@/lib/storage';
+  loadUserExpenses,
+  addUserExpense,
+  updateUserExpense,
+  deleteUserExpense,
+} from '@/lib/firestore';
 
 interface ExpenseContextValue {
   expenses: Expense[];
@@ -20,24 +21,39 @@ interface ExpenseContextValue {
 const ExpenseContext = createContext<ExpenseContextValue | null>(null);
 
 export function ExpenseProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    setExpenses(loadExpenses());
-    setIsLoaded(true);
-  }, []);
+    if (!user) {
+      setExpenses([]);
+      setIsLoaded(false);
+      return;
+    }
+    setIsLoaded(false);
+    loadUserExpenses(user.uid).then((data) => {
+      setExpenses(data);
+      setIsLoaded(true);
+    });
+  }, [user]);
 
   function add(expense: Expense) {
-    setExpenses((prev) => addExpense(prev, expense));
+    if (!user) return;
+    setExpenses((prev) => [expense, ...prev]);
+    addUserExpense(user.uid, expense);
   }
 
   function update(expense: Expense) {
-    setExpenses((prev) => updateExpense(prev, expense));
+    if (!user) return;
+    setExpenses((prev) => prev.map((e) => (e.id === expense.id ? expense : e)));
+    updateUserExpense(user.uid, expense);
   }
 
   function remove(id: string) {
-    setExpenses((prev) => deleteExpense(prev, id));
+    if (!user) return;
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    deleteUserExpense(user.uid, id);
   }
 
   return (

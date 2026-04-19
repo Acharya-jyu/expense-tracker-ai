@@ -33,50 +33,69 @@ export default function Dashboard({ expenses }: DashboardProps) {
     <div className="space-y-8">
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard
-          title="Total Spent"
-          value={formatCurrency(total)}
-          subtitle="All time"
-          icon={<DollarSign size={20} />}
-          color="indigo"
-          href="/expenses"
-        />
-        <SummaryCard
-          title="This Month"
-          value={formatCurrency(monthly)}
-          subtitle={new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
-          icon={<TrendingUp size={20} />}
-          color="emerald"
-          href={`/expenses?dateFrom=${monthStart}&dateTo=${monthEndStr}`}
-        />
-        <SummaryCard
-          title="Transactions"
-          value={String(expenses.length)}
-          subtitle="Total entries"
-          icon={<Receipt size={20} />}
-          color="orange"
-          href="/expenses"
-        />
-        <SummaryCard
-          title="Top Category"
-          value={topCategory ?? '—'}
-          subtitle="Highest spending"
-          icon={<Tag size={20} />}
-          color="rose"
-          href="/expenses"
-        />
+        {[
+          {
+            title: 'Total Spent',
+            value: formatCurrency(total),
+            subtitle: 'All time',
+            icon: <DollarSign size={20} />,
+            color: 'indigo' as const,
+            href: '/expenses',
+          },
+          {
+            title: 'This Month',
+            value: formatCurrency(monthly),
+            subtitle: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+            icon: <TrendingUp size={20} />,
+            color: 'emerald' as const,
+            href: `/expenses?dateFrom=${monthStart}&dateTo=${monthEndStr}`,
+          },
+          {
+            title: 'Transactions',
+            value: String(expenses.length),
+            subtitle: 'Total entries',
+            icon: <Receipt size={20} />,
+            color: 'orange' as const,
+            href: '/expenses',
+          },
+          {
+            title: 'Top Category',
+            value: topCategory ?? '—',
+            subtitle: 'Highest spending',
+            icon: <Tag size={20} />,
+            color: 'rose' as const,
+            href: '/expenses',
+          },
+        ].map((card, i) => (
+          <div
+            key={card.title}
+            className="animate-reveal-up"
+            style={{ animationDelay: `${80 + i * 90}ms` }}
+          >
+            <SummaryCard {...card} />
+          </div>
+        ))}
       </div>
 
       {/* Charts */}
-      <SpendingChart expenses={expenses} />
+      <div className="animate-reveal-scale" style={{ animationDelay: '450ms' }}>
+        <SpendingChart expenses={expenses} />
+      </div>
 
       {/* Category breakdown */}
       {summaries.length > 0 && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+        <div
+          className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 animate-reveal-scale"
+          style={{ animationDelay: '580ms' }}
+        >
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Category Breakdown</h3>
           <div className="space-y-3">
-            {summaries.map((s) => (
-              <div key={s.category} className="flex items-center gap-4">
+            {summaries.map((s, i) => (
+              <div
+                key={s.category}
+                className="flex items-center gap-4 animate-slide-right"
+                style={{ animationDelay: `${660 + i * 60}ms` }}
+              >
                 <CategoryBadge category={s.category} size="sm" />
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-1">
@@ -87,8 +106,13 @@ export default function Dashboard({ expenses }: DashboardProps) {
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1.5">
                     <div
-                      className="h-1.5 rounded-full bg-indigo-500 transition-all duration-500"
-                      style={{ width: `${s.percentage}%` }}
+                      className="h-1.5 rounded-full bg-indigo-500 animate-fill-bar"
+                      style={
+                        {
+                          '--bar-width': `${s.percentage}%`,
+                          animationDelay: `${760 + i * 60}ms`,
+                        } as React.CSSProperties
+                      }
                     />
                   </div>
                 </div>
@@ -102,7 +126,10 @@ export default function Dashboard({ expenses }: DashboardProps) {
       )}
 
       {/* Recent expenses */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+      <div
+        className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 animate-reveal-scale"
+        style={{ animationDelay: '700ms' }}
+      >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-700">Recent Expenses</h3>
           <Link href="/expenses" className="text-xs text-indigo-600 hover:underline font-medium">
@@ -121,10 +148,11 @@ export default function Dashboard({ expenses }: DashboardProps) {
           </div>
         ) : (
           <ul className="space-y-3">
-            {expenses.slice(0, 5).map((expense) => (
+            {expenses.slice(0, 5).map((expense, i) => (
               <li
                 key={expense.id}
-                className="flex items-center justify-between gap-4 py-2 border-b border-gray-50 last:border-0"
+                className="flex items-center justify-between gap-4 py-2 border-b border-gray-50 last:border-0 animate-reveal-up"
+                style={{ animationDelay: `${780 + i * 55}ms` }}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <CategoryBadge category={expense.category} size="sm" />

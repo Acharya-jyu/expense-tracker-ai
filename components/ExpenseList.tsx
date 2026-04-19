@@ -232,11 +232,29 @@ export default function ExpenseList({ expenses, onUpdate, onDelete, initialFilte
                     <div>
                       <p className="text-sm font-medium text-gray-900">{formatDate(expense.date)}</p>
                       <p className="text-xs text-gray-500 md:hidden">{expense.description}</p>
+                      {expense.tags && expense.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1 md:hidden">
+                          {expense.tags.map((tag) => (
+                            <span key={tag} className="text-xs px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-full border border-indigo-100">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {/* Description (desktop) */}
-                    <p className="hidden md:block text-sm text-gray-600 max-w-[200px] truncate">
-                      {expense.description}
-                    </p>
+                    <div className="hidden md:block max-w-[200px]">
+                      <p className="text-sm text-gray-600 truncate">{expense.description}</p>
+                      {expense.tags && expense.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {expense.tags.map((tag) => (
+                            <span key={tag} className="text-xs px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-full border border-indigo-100">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     {/* Category */}
                     <CategoryBadge category={expense.category} />
                     {/* Amount */}

@@ -23,3 +23,40 @@ input[type='date']::-webkit-calendar-picker-indicator {
   opacity: 0.5;
   cursor: pointer;
 }
+
+/* ── Dashboard entrance animations ── */
+@keyframes revealUp {
+  0%   { opacity: 0; transform: translateY(22px); filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0);    filter: blur(0);   }
+}
+
+@keyframes revealScale {
+  0%   { opacity: 0; transform: scale(0.96); filter: blur(5px); }
+  100% { opacity: 1; transform: scale(1);    filter: blur(0);   }
+}
+
+@keyframes slideRight {
+  0%   { opacity: 0; transform: translateX(-16px); }
+  100% { opacity: 1; transform: translateX(0);     }
+}
+
+@keyframes fillBar {
+  0%   { width: 0%; }
+  100% { width: var(--bar-width, 0%); }
+}
+
+.animate-reveal-up {
+  animation: revealUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-reveal-scale {
+  animation: revealScale 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-slide-right {
+  animation: slideRight 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fill-bar {
+  animation: fillBar 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
