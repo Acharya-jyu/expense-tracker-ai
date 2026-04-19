@@ -11,7 +11,7 @@ import {
 import SummaryCard from './SummaryCard';
 import SpendingChart from './SpendingChart';
 import CategoryBadge from './CategoryBadge';
-import { DollarSign, TrendingUp, Tag, Receipt } from 'lucide-react';
+import { DollarSign, TrendingUp, Tag, Receipt, Download } from 'lucide-react';
 import Link from 'next/link';
 
 interface DashboardProps {
@@ -24,6 +24,21 @@ export default function Dashboard({ expenses }: DashboardProps) {
   const topCategory = getTopCategory(expenses);
   const summaries = getCategorySummaries(expenses).filter((s) => s.total > 0);
 
+  function exportCSV() {
+    const header = 'Date,Category,Amount,Description';
+    const rows = expenses.map((e) =>
+      `${e.date},${e.category},${e.amount},"${e.description.replace(/"/g, '""')}"`
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expenses-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -31,6 +46,19 @@ export default function Dashboard({ expenses }: DashboardProps) {
 
   return (
     <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-800">Overview</h2>
+        <button
+          onClick={exportCSV}
+          disabled={expenses.length === 0}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+        >
+          <Download size={15} />
+          Export CSV
+        </button>
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
