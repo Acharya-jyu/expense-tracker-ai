@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Expense } from '@/types/expense';
-import { CATEGORIES } from '@/types/expense';
 import { formatCurrency } from '@/lib/utils';
-import { X, Download, FileText, FileJson, FilePlus, Calendar, Filter, Eye, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Download, FileText, FileJson, FilePlus, Calendar, Filter, Eye, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 type ExportFormat = 'csv' | 'json' | 'pdf';
 
@@ -19,15 +18,33 @@ const FORMAT_OPTIONS: { id: ExportFormat; label: string; icon: React.ReactNode; 
   { id: 'pdf', label: 'PDF', icon: <FilePlus size={18} />, desc: 'Print ready report' },
 ];
 
+const LS_FORMAT   = 'export_modal_format';
+const LS_FILENAME = 'export_modal_filename';
+
+const FOCUSABLE = 'button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 export default function ExportModal({ expenses, onClose }: ExportModalProps) {
-  const [format, setFormat] = useState<ExportFormat>('csv');
+  // ── Fix 4: restore last-used format & filename from localStorage ──────────
+  const [format, setFormat] = useState<ExportFormat>(() => {
+    if (typeof window === 'undefined') return 'csv';
+    return (localStorage.getItem(LS_FORMAT) as ExportFormat) ?? 'csv';
+  });
+  const [filename, setFilename] = useState(() => {
+    if (typeof window === 'undefined') return `expenses-${new Date().toISOString().slice(0, 10)}`;
+    return localStorage.getItem(LS_FILENAME) ?? `expenses-${new Date().toISOString().slice(0, 10)}`;
+  });
+
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [filename, setFilename] = useState(`expenses-${new Date().toISOString().slice(0, 10)}`);
   const [showPreview, setShowPreview] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [done, setDone] = useState(false);
+  // ── Fix 1: visible error state ────────────────────────────────────────────
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // ── Fix 3: focus trap ref ─────────────────────────────────────────────────
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const allCategories = useMemo(() => {
     const cats = new Set(expenses.map((e) => e.category));
@@ -44,6 +61,16 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
   }, [expenses, dateFrom, dateTo, selectedCategories]);
 
   const totalAmount = useMemo(() => filtered.reduce((s, e) => s + e.amount, 0), [filtered]);
+
+  // Persist format & filename whenever they change
+  function updateFormat(f: ExportFormat) {
+    setFormat(f);
+    localStorage.setItem(LS_FORMAT, f);
+  }
+  function updateFilename(f: string) {
+    setFilename(f);
+    localStorage.setItem(LS_FILENAME, f);
+  }
 
   function toggleCategory(cat: string) {
     setSelectedCategories((prev) =>
@@ -69,8 +96,10 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
     );
   }
 
+  // ── Fix 2: use jspdf-autotable for correct column layout ─────────────────
   async function buildPDF() {
     const { jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const doc = new jsPDF();
 
     doc.setFontSize(18);
@@ -82,38 +111,32 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
     doc.text(`Records: ${filtered.length}  |  Total: $${totalAmount.toFixed(2)}`, 14, 34);
 
-    doc.setDrawColor(229, 231, 235);
-    doc.line(14, 38, 196, 38);
-
-    const colX = [14, 48, 88, 118];
-    const headers = ['Date', 'Category', 'Amount', 'Description'];
-
-    doc.setFontSize(8);
-    doc.setTextColor(55, 65, 81);
-    doc.setFont('helvetica', 'bold');
-    headers.forEach((h, i) => doc.text(h, colX[i], 46));
-    doc.line(14, 48, 196, 48);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(75, 85, 99);
-    let y = 55;
-    for (const e of filtered) {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-      const row = [e.date, e.category, `$${e.amount.toFixed(2)}`, e.description];
-      row.forEach((val, i) => {
-        const maxW = i === 3 ? 75 : 35;
-        const truncated = val.length > 35 ? val.slice(0, 33) + '…' : val;
-        doc.text(i === 3 ? truncated : val, colX[i], y, { maxWidth: maxW });
-      });
-      y += 7;
-    }
-
-    doc.setFontSize(8);
-    doc.setTextColor(156, 163, 175);
-    doc.text(`Total: $${totalAmount.toFixed(2)}`, 14, y + 4);
+    autoTable(doc, {
+      startY: 42,
+      head: [['Date', 'Category', 'Amount', 'Description']],
+      body: filtered.map((e) => [
+        e.date,
+        e.category,
+        `$${e.amount.toFixed(2)}`,
+        e.description,
+      ]),
+      headStyles: {
+        fillColor: [79, 70, 229],
+        fontSize: 8,
+        fontStyle: 'bold',
+      },
+      bodyStyles: { fontSize: 8, textColor: [75, 85, 99] },
+      alternateRowStyles: { fillColor: [249, 250, 251] },
+      columnStyles: {
+        0: { cellWidth: 28 },
+        1: { cellWidth: 36 },
+        2: { cellWidth: 28, halign: 'right' },
+        3: { cellWidth: 'auto' },
+      },
+      foot: [[{ content: `Total: $${totalAmount.toFixed(2)}`, colSpan: 4, styles: { halign: 'right', fontSize: 8, textColor: [107, 114, 128] } }]],
+      showFoot: 'lastPage',
+      margin: { left: 14, right: 14 },
+    });
 
     return doc;
   }
@@ -121,17 +144,16 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
   async function handleExport() {
     if (filtered.length === 0) return;
     setExporting(true);
+    setExportError(null);
     await new Promise((r) => setTimeout(r, 600));
 
     try {
       const name = filename.trim() || 'expenses';
 
       if (format === 'csv') {
-        const blob = new Blob([buildCSV()], { type: 'text/csv' });
-        trigger(blob, `${name}.csv`);
+        trigger(new Blob([buildCSV()], { type: 'text/csv' }), `${name}.csv`);
       } else if (format === 'json') {
-        const blob = new Blob([buildJSON()], { type: 'application/json' });
-        trigger(blob, `${name}.json`);
+        trigger(new Blob([buildJSON()], { type: 'application/json' }), `${name}.json`);
       } else {
         const doc = await buildPDF();
         doc.save(`${name}.pdf`);
@@ -139,7 +161,10 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
 
       setDone(true);
       setTimeout(() => { setDone(false); setExporting(false); }, 2000);
-    } catch {
+    } catch (err) {
+      // ── Fix 1: surface the error to the user ─────────────────────────────
+      const message = err instanceof Error ? err.message : 'Export failed. Please try again.';
+      setExportError(message);
       setExporting(false);
     }
   }
@@ -153,39 +178,75 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
     URL.revokeObjectURL(url);
   }
 
+  // ── Fix 3: Escape key + focus trap + initial focus ────────────────────────
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // Move focus into the modal on open
+    const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE);
+    firstFocusable?.focus();
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') { onClose(); return; }
+
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last  = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+    // ── Fix 3: aria-modal + role="dialog" + aria-labelledby ─────────────────
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog" aria-labelledby="export-modal-title">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div ref={modalRef} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Export Data</h2>
+            <h2 id="export-modal-title" className="text-lg font-bold text-gray-900">Export Data</h2>
             <p className="text-xs text-gray-400 mt-0.5">Configure and download your expense data</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} aria-label="Close export dialog" className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
             <X size={18} />
           </button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
+          {/* Fix 1: error banner */}
+          {exportError && (
+            <div role="alert" className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Export failed</p>
+                <p className="text-xs mt-0.5 text-red-600">{exportError}</p>
+              </div>
+              <button onClick={() => setExportError(null)} aria-label="Dismiss error" className="ml-auto text-red-400 hover:text-red-600">
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
           {/* Format selector */}
-          <section>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Export Format</label>
-            <div className="grid grid-cols-3 gap-3">
+          <section aria-labelledby="format-label">
+            <p id="format-label" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Export Format</p>
+            <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-labelledby="format-label">
               {FORMAT_OPTIONS.map((opt) => (
                 <button
                   key={opt.id}
-                  onClick={() => setFormat(opt.id)}
+                  onClick={() => updateFormat(opt.id)}
+                  role="radio"
+                  aria-checked={format === opt.id}
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                     format === opt.id
                       ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
@@ -201,14 +262,15 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
           </section>
 
           {/* Date range */}
-          <section>
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              <Calendar size={12} /> Date Range
-            </label>
+          <section aria-labelledby="date-range-label">
+            <p id="date-range-label" className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              <Calendar size={12} aria-hidden="true" /> Date Range
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">From</label>
+                <label htmlFor="date-from" className="text-xs text-gray-400 mb-1 block">From</label>
                 <input
+                  id="date-from"
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
@@ -216,8 +278,9 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">To</label>
+                <label htmlFor="date-to" className="text-xs text-gray-400 mb-1 block">To</label>
                 <input
+                  id="date-to"
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
@@ -228,20 +291,24 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
           </section>
 
           {/* Category filter */}
-          <section>
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              <Filter size={12} /> Categories
-              <span className="ml-auto text-indigo-500 font-normal normal-case tracking-normal cursor-pointer hover:underline text-xs"
+          <section aria-labelledby="category-label">
+            <div className="flex items-center gap-1.5 mb-3">
+              <p id="category-label" className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Filter size={12} aria-hidden="true" /> Categories
+              </p>
+              <button
                 onClick={() => setSelectedCategories([])}
+                className="ml-auto text-indigo-500 font-normal text-xs hover:underline"
               >
                 {selectedCategories.length > 0 ? 'Clear' : 'All included'}
-              </span>
-            </label>
-            <div className="flex flex-wrap gap-2">
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="category-label">
               {allCategories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => toggleCategory(cat)}
+                  aria-pressed={selectedCategories.includes(cat)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                     selectedCategories.includes(cat)
                       ? 'bg-indigo-600 text-white border-indigo-600'
@@ -256,45 +323,48 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
 
           {/* Filename */}
           <section>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Filename</label>
+            <label htmlFor="export-filename" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Filename</label>
             <div className="flex items-center gap-2">
               <input
+                id="export-filename"
                 type="text"
                 value={filename}
-                onChange={(e) => setFilename(e.target.value)}
+                onChange={(e) => updateFilename(e.target.value)}
                 className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
-              <span className="text-sm text-gray-400">.{format}</span>
+              <span className="text-sm text-gray-400" aria-live="polite">.{format}</span>
             </div>
           </section>
 
           {/* Summary bar */}
           <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-4 text-sm" aria-live="polite" aria-atomic="true">
               <span className="text-gray-500">Records</span>
               <span className="font-bold text-gray-900">{filtered.length}</span>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300" aria-hidden="true">|</span>
               <span className="text-gray-500">Total</span>
               <span className="font-bold text-gray-900">{formatCurrency(totalAmount)}</span>
             </div>
             <button
               onClick={() => setShowPreview((p) => !p)}
+              aria-expanded={showPreview}
+              aria-controls="preview-table"
               className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium hover:underline"
             >
-              <Eye size={13} />
+              <Eye size={13} aria-hidden="true" />
               {showPreview ? 'Hide' : 'Preview'}
             </button>
           </div>
 
           {/* Preview table */}
           {showPreview && (
-            <div className="rounded-xl border border-gray-100 overflow-hidden">
+            <div id="preview-table" className="rounded-xl border border-gray-100 overflow-hidden">
               <div className="overflow-x-auto max-h-52">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50 sticky top-0">
                     <tr>
                       {['Date', 'Category', 'Amount', 'Description'].map((h) => (
-                        <th key={h} className="text-left px-3 py-2 font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="text-left px-3 py-2 font-semibold text-gray-500" scope="col">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -336,6 +406,7 @@ export default function ExportModal({ expenses, onClose }: ExportModalProps) {
           <button
             onClick={handleExport}
             disabled={exporting || filtered.length === 0}
+            aria-busy={exporting}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm disabled:cursor-not-allowed ${
               done
                 ? 'bg-emerald-500 text-white'
