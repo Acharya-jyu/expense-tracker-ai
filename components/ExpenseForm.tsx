@@ -120,7 +120,7 @@ export default function ExpenseForm({ initialData, onSave, onCancel, mode = 'cre
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Amount</label>
         <div className="relative">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">$</span>
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">NRs</span>
           <input
             type="number"
             inputMode="decimal"
@@ -129,7 +129,7 @@ export default function ExpenseForm({ initialData, onSave, onCancel, mode = 'cre
             placeholder="0.00"
             value={formData.amount}
             onChange={(e) => handleChange('amount', e.target.value)}
-            className={`${errors.amount ? inputErr : inputOk} pl-8`}
+            className={`${errors.amount ? inputErr : inputOk} pl-14`}
           />
         </div>
         {errors.amount && (

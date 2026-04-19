@@ -93,7 +93,7 @@ export default function SpendingChart({ expenses }: SpendingChartProps) {
                 tick={{ fontSize: 11, fill: '#9ca3af' }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v) => `$${v}`}
+                tickFormatter={(v) => `NRs ${v}`}
               />
               <Tooltip content={<CustomBarTooltip />} />
               <Bar dataKey="total" fill="#6366f1" radius={[6, 6, 0, 0]} />

@@ -43,7 +43,7 @@ export default function Navigation() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">$</span>
+              <span className="text-white font-bold text-xs">NRs</span>
             </div>
             <span className="font-bold text-gray-900 text-lg tracking-tight">ExpenseAI</span>
           </Link>
