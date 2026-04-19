@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Expense } from '@/types/expense';
 import {
   getTotalAmount,
@@ -11,7 +12,8 @@ import {
 import SummaryCard from './SummaryCard';
 import SpendingChart from './SpendingChart';
 import CategoryBadge from './CategoryBadge';
-import { DollarSign, TrendingUp, Tag, Receipt } from 'lucide-react';
+import ExportModal from './ExportModal';
+import { DollarSign, TrendingUp, Tag, Receipt, Download } from 'lucide-react';
 import Link from 'next/link';
 
 interface DashboardProps {
@@ -19,6 +21,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ expenses }: DashboardProps) {
+  const [showExport, setShowExport] = useState(false);
   const total = getTotalAmount(expenses);
   const monthly = getMonthlyTotal(expenses);
   const topCategory = getTopCategory(expenses);
@@ -31,6 +34,23 @@ export default function Dashboard({ expenses }: DashboardProps) {
 
   return (
     <div className="space-y-8">
+      {showExport && (
+        <ExportModal expenses={expenses} onClose={() => setShowExport(false)} />
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-800">Overview</h2>
+        <button
+          onClick={() => setShowExport(true)}
+          disabled={expenses.length === 0}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+        >
+          <Download size={15} />
+          Export Data
+        </button>
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
