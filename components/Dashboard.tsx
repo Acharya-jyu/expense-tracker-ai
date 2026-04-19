@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Expense } from '@/types/expense';
 import {
   getTotalAmount,
@@ -11,7 +12,8 @@ import {
 import SummaryCard from './SummaryCard';
 import SpendingChart from './SpendingChart';
 import CategoryBadge from './CategoryBadge';
-import { DollarSign, TrendingUp, Tag, Receipt } from 'lucide-react';
+import ExportHub from './ExportHub';
+import { DollarSign, TrendingUp, Tag, Receipt, Share2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface DashboardProps {
@@ -19,6 +21,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ expenses }: DashboardProps) {
+  const [showHub, setShowHub] = useState(false);
   const total = getTotalAmount(expenses);
   const monthly = getMonthlyTotal(expenses);
   const topCategory = getTopCategory(expenses);
@@ -31,6 +34,21 @@ export default function Dashboard({ expenses }: DashboardProps) {
 
   return (
     <div className="space-y-8">
+      {showHub && <ExportHub expenses={expenses} onClose={() => setShowHub(false)} />}
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-800">Overview</h2>
+        <button
+          onClick={() => setShowHub(true)}
+          disabled={expenses.length === 0}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <Share2 size={15} />
+          Data Hub
+        </button>
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
