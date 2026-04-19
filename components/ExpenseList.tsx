@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Expense, CATEGORIES, Category, FilterState } from '@/types/expense';
+import { Expense, FilterState } from '@/types/expense';
+import { useCustomCategories } from '@/context/CustomCategoriesContext';
 import { filterExpenses, formatCurrency, formatDate, exportToCSV } from '@/lib/utils';
 import CategoryBadge from './CategoryBadge';
 import ExpenseForm from './ExpenseForm';
@@ -28,6 +29,7 @@ type SortField = 'date' | 'amount' | 'category';
 type SortDir = 'asc' | 'desc';
 
 export default function ExpenseList({ expenses, onUpdate, onDelete, initialFilters }: ExpenseListProps) {
+  const { allCategories } = useCustomCategories();
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     category: 'All',
@@ -129,12 +131,12 @@ export default function ExpenseList({ expenses, onUpdate, onDelete, initialFilte
             <select
               value={filters.category}
               onChange={(e) =>
-                setFilters((f) => ({ ...f, category: e.target.value as Category | 'All' }))
+                setFilters((f) => ({ ...f, category: e.target.value }))
               }
               className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
               <option value="All">All Categories</option>
-              {CATEGORIES.map((c) => (
+              {allCategories.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -232,28 +234,10 @@ export default function ExpenseList({ expenses, onUpdate, onDelete, initialFilte
                     <div>
                       <p className="text-sm font-medium text-gray-900">{formatDate(expense.date)}</p>
                       <p className="text-xs text-gray-500 md:hidden">{expense.description}</p>
-                      {expense.tags && expense.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1 md:hidden">
-                          {expense.tags.map((tag) => (
-                            <span key={tag} className="text-xs px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-full border border-indigo-100">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                     {/* Description (desktop) */}
                     <div className="hidden md:block max-w-[200px]">
                       <p className="text-sm text-gray-600 truncate">{expense.description}</p>
-                      {expense.tags && expense.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {expense.tags.map((tag) => (
-                            <span key={tag} className="text-xs px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-full border border-indigo-100">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                     {/* Category */}
                     <CategoryBadge category={expense.category} />

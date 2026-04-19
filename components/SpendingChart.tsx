@@ -13,7 +13,7 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { Expense, CATEGORY_COLORS, Category } from '@/types/expense';
+import { Expense, getCategoryColor } from '@/types/expense';
 import { getMonthlyData, getCategorySummaries, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -62,7 +62,7 @@ export default function SpendingChart({ expenses }: SpendingChartProps) {
     name: s.category,
     value: s.total,
     percentage: s.percentage,
-    fill: CATEGORY_COLORS[s.category as Category],
+    fill: getCategoryColor(s.category),
   }));
 
   return (

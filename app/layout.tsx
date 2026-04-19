@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { ExpenseProvider } from '@/context/ExpenseContext';
-import { LabelsProvider } from '@/context/LabelsContext';
+import { CustomCategoriesProvider } from '@/context/CustomCategoriesContext';
 import AppShell from '@/components/AppShell';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -19,9 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} bg-gray-50 min-h-screen antialiased`}>
         <AuthProvider>
           <ExpenseProvider>
-            <LabelsProvider>
+            <CustomCategoriesProvider>
               <AppShell>{children}</AppShell>
-            </LabelsProvider>
+            </CustomCategoriesProvider>
           </ExpenseProvider>
         </AuthProvider>
       </body>

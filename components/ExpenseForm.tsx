@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Expense, ExpenseFormData, CATEGORIES, Category } from '@/types/expense';
+import { Expense, ExpenseFormData } from '@/types/expense';
 import { generateId } from '@/lib/utils';
-import { useLabels } from '@/context/LabelsContext';
+import { useCustomCategories } from '@/context/CustomCategoriesContext';
 import { format } from 'date-fns';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 
@@ -14,17 +14,16 @@ interface ExpenseFormProps {
   mode?: 'create' | 'edit';
 }
 
-type FormErrors = Partial<Record<keyof Omit<ExpenseFormData, 'tags'>, string>>;
+type FormErrors = Partial<Record<keyof ExpenseFormData, string>>;
 
 export default function ExpenseForm({ initialData, onSave, onCancel, mode = 'create' }: ExpenseFormProps) {
-  const { labels } = useLabels();
+  const { allCategories } = useCustomCategories();
 
   const [formData, setFormData] = useState<ExpenseFormData>({
     date: initialData?.date ?? format(new Date(), 'yyyy-MM-dd'),
     amount: initialData ? String(initialData.amount) : '',
     category: initialData?.category ?? 'Food',
     description: initialData?.description ?? '',
-    tags: initialData?.tags ?? [],
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
@@ -44,19 +43,10 @@ export default function ExpenseForm({ initialData, onSave, onCancel, mode = 'cre
     return errs;
   }
 
-  function handleChange(field: keyof Omit<ExpenseFormData, 'tags'>, value: string) {
+  function handleChange(field: keyof ExpenseFormData, value: string) {
     const next = { ...formData, [field]: value };
     setFormData(next);
     if (Object.keys(errors).length > 0) setErrors(validate(next));
-  }
-
-  function toggleTag(tag: string) {
-    setFormData((prev) => ({
-      ...prev,
-      tags: prev.tags.includes(tag)
-        ? prev.tags.filter((t) => t !== tag)
-        : [...prev.tags, tag],
-    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -72,10 +62,9 @@ export default function ExpenseForm({ initialData, onSave, onCancel, mode = 'cre
       id: initialData?.id ?? generateId(),
       date: formData.date,
       amount: parseFloat(parseFloat(formData.amount).toFixed(2)),
-      category: formData.category as Category,
+      category: formData.category,
       description: formData.description.trim(),
       createdAt: initialData?.createdAt ?? new Date().toISOString(),
-      tags: formData.tags.length > 0 ? formData.tags : undefined,
     };
 
     await new Promise((r) => setTimeout(r, 300));
@@ -91,7 +80,6 @@ export default function ExpenseForm({ initialData, onSave, onCancel, mode = 'cre
           amount: '',
           category: 'Food',
           description: '',
-          tags: [],
         });
       }, 1500);
     }
@@ -155,7 +143,7 @@ export default function ExpenseForm({ initialData, onSave, onCancel, mode = 'cre
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
         <div className="grid grid-cols-3 gap-2">
-          {CATEGORIES.map((cat) => (
+          {allCategories.map((cat) => (
             <button
               key={cat}
               type="button"
@@ -171,35 +159,6 @@ export default function ExpenseForm({ initialData, onSave, onCancel, mode = 'cre
           ))}
         </div>
       </div>
-
-      {/* Custom labels / tags */}
-      {labels.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Labels
-            <span className="ml-1 text-xs text-gray-400 font-normal">optional</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {labels.map((label) => {
-              const active = formData.tags.includes(label);
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => toggleTag(label)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    active
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Description */}
       <div>

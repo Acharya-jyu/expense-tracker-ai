@@ -2,23 +2,24 @@
 
 import { useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useLabels } from '@/context/LabelsContext';
+import { useCustomCategories } from '@/context/CustomCategoriesContext';
 import { setUserProfile } from '@/lib/firestore';
 import { updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { User, Tag, Plus, X, Check, LogOut, Pencil } from 'lucide-react';
+import { getCategoryColor, BUILTIN_CATEGORIES } from '@/types/expense';
+import { User, Layers, Plus, X, Check, LogOut, Pencil } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
-  const { labels, addLabel, removeLabel } = useLabels();
+  const { customCategories, addCategory, removeCategory } = useCustomCategories();
 
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(user?.displayName ?? '');
   const [nameSaving, setNameSaving] = useState(false);
 
-  const [newLabel, setNewLabel] = useState('');
-  const [labelError, setLabelError] = useState('');
-  const labelInputRef = useRef<HTMLInputElement>(null);
+  const [newCategory, setNewCategory] = useState('');
+  const [categoryError, setCategoryError] = useState('');
+  const categoryInputRef = useRef<HTMLInputElement>(null);
 
   const initials = (user?.displayName ?? user?.email ?? '?')
     .split(' ')
@@ -36,28 +37,32 @@ export default function ProfilePage() {
     setEditingName(false);
   }
 
-  async function handleAddLabel() {
-    const trimmed = newLabel.trim();
+  async function handleAddCategory() {
+    const trimmed = newCategory.trim();
     if (!trimmed) return;
-    if (labels.includes(trimmed)) {
-      setLabelError('Label already exists.');
+    if (BUILTIN_CATEGORIES.map((c) => c.toLowerCase()).includes(trimmed.toLowerCase())) {
+      setCategoryError('That name matches a built-in category.');
+      return;
+    }
+    if (customCategories.map((c) => c.toLowerCase()).includes(trimmed.toLowerCase())) {
+      setCategoryError('Category already exists.');
       return;
     }
     if (trimmed.length > 30) {
-      setLabelError('Max 30 characters.');
+      setCategoryError('Max 30 characters.');
       return;
     }
-    setLabelError('');
-    await addLabel(trimmed);
-    setNewLabel('');
-    labelInputRef.current?.focus();
+    setCategoryError('');
+    await addCategory(trimmed);
+    setNewCategory('');
+    categoryInputRef.current?.focus();
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="animate-reveal-up" style={{ animationDelay: '0ms' }}>
         <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
-        <p className="text-gray-500 text-sm mt-1">Manage your account and custom labels</p>
+        <p className="text-gray-500 text-sm mt-1">Manage your account and custom categories</p>
       </div>
 
       {/* Account card */}
@@ -132,34 +137,49 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Custom labels card */}
+      {/* Custom categories card */}
       <div
         className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 animate-reveal-up"
         style={{ animationDelay: '160ms' }}
       >
         <div className="flex items-center gap-2 mb-1">
-          <Tag size={15} className="text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-700">Custom Labels</h2>
+          <Layers size={15} className="text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-700">Custom Categories</h2>
         </div>
         <p className="text-xs text-gray-400 mb-5">
-          Create your own labels to tag expenses beyond the default categories.
+          Add your own categories beyond the six built-in ones. They appear alongside the defaults when adding expenses.
         </p>
 
-        {/* Add label */}
+        {/* Built-in categories (read-only reference) */}
+        <div className="mb-5">
+          <p className="text-xs font-medium text-gray-500 mb-2">Built-in</p>
+          <div className="flex flex-wrap gap-2">
+            {BUILTIN_CATEGORIES.map((cat) => (
+              <span
+                key={cat}
+                className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-gray-50 text-gray-500"
+              >
+                {cat}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Add custom category */}
         <div className="flex gap-2 mb-4">
           <input
-            ref={labelInputRef}
+            ref={categoryInputRef}
             type="text"
-            value={newLabel}
-            onChange={(e) => { setNewLabel(e.target.value); setLabelError(''); }}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleAddLabel(); }}
-            placeholder="e.g. Vacation, Medical, Side project…"
+            value={newCategory}
+            onChange={(e) => { setNewCategory(e.target.value); setCategoryError(''); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }}
+            placeholder="e.g. Vacation, Medical, Gym…"
             maxLength={30}
             className="flex-1 text-sm border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
           />
           <button
-            onClick={handleAddLabel}
-            disabled={!newLabel.trim()}
+            onClick={handleAddCategory}
+            disabled={!newCategory.trim()}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <Plus size={15} />
@@ -167,31 +187,36 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {labelError && (
-          <p className="text-xs text-red-500 mb-3 -mt-2">{labelError}</p>
+        {categoryError && (
+          <p className="text-xs text-red-500 mb-3 -mt-2">{categoryError}</p>
         )}
 
-        {/* Label pills */}
-        {labels.length === 0 ? (
+        {/* Custom category pills */}
+        {customCategories.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-6 border border-dashed border-gray-200 rounded-xl">
-            No labels yet. Add your first one above.
+            No custom categories yet. Add your first one above.
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {labels.map((label) => (
-              <span
-                key={label}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-100 group"
-              >
-                {label}
-                <button
-                  onClick={() => removeLabel(label)}
-                  className="text-indigo-400 hover:text-indigo-700 transition-colors"
+            {customCategories.map((cat) => {
+              const color = getCategoryColor(cat);
+              return (
+                <span
+                  key={cat}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border group"
+                  style={{ backgroundColor: `${color}18`, borderColor: `${color}40`, color }}
                 >
-                  <X size={11} />
-                </button>
-              </span>
-            ))}
+                  {cat}
+                  <button
+                    onClick={() => removeCategory(cat)}
+                    className="opacity-60 hover:opacity-100 transition-opacity"
+                    style={{ color }}
+                  >
+                    <X size={11} />
+                  </button>
+                </span>
+              );
+            })}
           </div>
         )}
       </div>

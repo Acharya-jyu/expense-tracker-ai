@@ -1,4 +1,4 @@
-import { Expense, Category, CategorySummary, CATEGORIES } from '@/types/expense';
+import { Expense, CategorySummary } from '@/types/expense';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 
 export function generateId(): string {
@@ -42,7 +42,8 @@ export function getMonthlyTotal(expenses: Expense[]): number {
 
 export function getCategorySummaries(expenses: Expense[]): CategorySummary[] {
   const total = getTotalAmount(expenses);
-  return CATEGORIES.map((category) => {
+  const categories = Array.from(new Set(expenses.map((e) => e.category)));
+  return categories.map((category) => {
     const filtered = expenses.filter((e) => e.category === category);
     const catTotal = getTotalAmount(filtered);
     return {
@@ -54,7 +55,7 @@ export function getCategorySummaries(expenses: Expense[]): CategorySummary[] {
   }).sort((a, b) => b.total - a.total);
 }
 
-export function getTopCategory(expenses: Expense[]): Category | null {
+export function getTopCategory(expenses: Expense[]): string | null {
   if (expenses.length === 0) return null;
   const summaries = getCategorySummaries(expenses);
   return summaries[0]?.total > 0 ? summaries[0].category : null;
@@ -83,7 +84,7 @@ export function getMonthlyData(expenses: Expense[]): { month: string; total: num
 export function filterExpenses(
   expenses: Expense[],
   search: string,
-  category: Category | 'All',
+  category: string,
   dateFrom: string,
   dateTo: string
 ): Expense[] {

@@ -39,8 +39,17 @@ export default function SignInPage() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-    } catch {
-      setError('Google sign-in failed. Please try again.');
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? '';
+      if (code.includes('unauthorized-domain')) {
+        setError('This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
+      } else if (code.includes('operation-not-allowed')) {
+        setError('Google sign-in is not enabled. Enable it in Firebase Console → Authentication → Sign-in method.');
+      } else if (code.includes('network-request-failed')) {
+        setError('Network error. Check your internet connection and try again.');
+      } else {
+        setError('Google sign-in failed. Please try again.');
+      }
     } finally {
       setGoogleLoading(false);
     }
