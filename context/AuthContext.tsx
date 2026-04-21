@@ -47,8 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       })
-      .catch(() => {
-        // redirect result errors are non-fatal; auth state still resolves below
+      .catch((err: unknown) => {
+        const code = (err as { code?: string }).code ?? '';
+        // auth/no-current-user means no pending redirect — not an error
+        if (code === 'auth/no-current-user') return;
+        console.error('[Auth] getRedirectResult error:', err);
       });
 
     const unsubscribe = onAuthStateChanged(auth, (u) => {

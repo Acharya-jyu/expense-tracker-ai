@@ -4,7 +4,7 @@ import { useExpenses } from '@/context/ExpenseContext';
 import Dashboard from '@/components/Dashboard';
 
 export default function HomePage() {
-  const { expenses, isLoaded } = useExpenses();
+  const { expenses, isLoaded, error } = useExpenses();
 
   if (!isLoaded) {
     return (
@@ -23,6 +23,14 @@ export default function HomePage() {
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">Your financial overview at a glance</p>
       </div>
+      {error && (
+        <div
+          role="alert"
+          className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700"
+        >
+          Could not load your expenses: {error}
+        </div>
+      )}
       <Dashboard expenses={expenses} />
     </div>
   );

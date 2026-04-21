@@ -15,34 +15,58 @@ export interface UserProfile {
 
 // ── Expenses ──────────────────────────────────────────────
 export async function loadUserExpenses(uid: string): Promise<Expense[]> {
-  const q = query(
-    collection(db, 'users', uid, 'expenses'),
-    orderBy('createdAt', 'desc')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Expense));
+  try {
+    const q = query(
+      collection(db, 'users', uid, 'expenses'),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Expense));
+  } catch (err) {
+    throw new Error(`Failed to load expenses: ${(err as Error).message}`);
+  }
 }
 
 export async function addUserExpense(uid: string, expense: Expense): Promise<void> {
-  const { id, ...data } = expense;
-  await setDoc(doc(db, 'users', uid, 'expenses', id), data);
+  try {
+    const { id, ...data } = expense;
+    await setDoc(doc(db, 'users', uid, 'expenses', id), data);
+  } catch (err) {
+    throw new Error(`Failed to save expense: ${(err as Error).message}`);
+  }
 }
 
 export async function updateUserExpense(uid: string, expense: Expense): Promise<void> {
-  const { id, ...data } = expense;
-  await updateDoc(doc(db, 'users', uid, 'expenses', id), data);
+  try {
+    const { id, ...data } = expense;
+    await updateDoc(doc(db, 'users', uid, 'expenses', id), data);
+  } catch (err) {
+    throw new Error(`Failed to update expense: ${(err as Error).message}`);
+  }
 }
 
 export async function deleteUserExpense(uid: string, expenseId: string): Promise<void> {
-  await deleteDoc(doc(db, 'users', uid, 'expenses', expenseId));
+  try {
+    await deleteDoc(doc(db, 'users', uid, 'expenses', expenseId));
+  } catch (err) {
+    throw new Error(`Failed to delete expense: ${(err as Error).message}`);
+  }
 }
 
 // ── User profile ──────────────────────────────────────────
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  const snap = await getDoc(doc(db, 'users', uid));
-  return snap.exists() ? (snap.data() as UserProfile) : null;
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return snap.exists() ? (snap.data() as UserProfile) : null;
+  } catch (err) {
+    throw new Error(`Failed to load user profile: ${(err as Error).message}`);
+  }
 }
 
 export async function setUserProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
-  await setDoc(doc(db, 'users', uid), data, { merge: true });
+  try {
+    await setDoc(doc(db, 'users', uid), data, { merge: true });
+  } catch (err) {
+    throw new Error(`Failed to save user profile: ${(err as Error).message}`);
+  }
 }

@@ -229,40 +229,69 @@ export default function ExpenseList({ expenses, onUpdate, onDelete, initialFilte
                     />
                   </div>
                 ) : (
-                  <div className="grid md:grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-6 py-4 items-center hover:bg-gray-50/60 transition-colors">
-                    {/* Date */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{formatDate(expense.date)}</p>
-                      <p className="text-xs text-gray-500 md:hidden">{expense.description}</p>
+                  <>
+                    {/* Mobile card */}
+                    <div className="flex md:hidden items-start gap-3 px-4 py-3 hover:bg-gray-50/60 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{formatDate(expense.date)}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">{expense.description}</p>
+                        <div className="mt-1.5">
+                          <CategoryBadge category={expense.category} />
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <p className="text-sm font-semibold text-gray-900 tabular-nums">
+                          {formatCurrency(expense.amount)}
+                        </p>
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={() => setEditingId(expense.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(expense.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    {/* Description (desktop) */}
-                    <div className="hidden md:block max-w-[200px]">
-                      <p className="text-sm text-gray-600 truncate">{expense.description}</p>
+
+                    {/* Desktop row */}
+                    <div className="hidden md:grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-6 py-4 items-center hover:bg-gray-50/60 transition-colors">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{formatDate(expense.date)}</p>
+                      </div>
+                      <div className="max-w-[200px]">
+                        <p className="text-sm text-gray-600 truncate">{expense.description}</p>
+                      </div>
+                      <CategoryBadge category={expense.category} />
+                      <p className="text-sm font-semibold text-gray-900 tabular-nums">
+                        {formatCurrency(expense.amount)}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditingId(expense.id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(expense.id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                    {/* Category */}
-                    <CategoryBadge category={expense.category} />
-                    {/* Amount */}
-                    <p className="text-sm font-semibold text-gray-900 tabular-nums">
-                      {formatCurrency(expense.amount)}
-                    </p>
-                    {/* Actions */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setEditingId(expense.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirmId(expense.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 )}
 
                 {/* Delete confirmation inline */}
